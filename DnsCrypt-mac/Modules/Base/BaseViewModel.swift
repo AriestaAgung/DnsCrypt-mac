@@ -91,11 +91,11 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     }
     
     func activateDNSCrypt() {
-        
+        self.currentStatus = .currentState + "DNS Active..."
     }
     
     func deactivateDNSCrypt() {
-        
+        self.currentStatus = .currentState + "DNS Inactive..."
     }
     
     func didToggleChange(isOn: Bool) {
