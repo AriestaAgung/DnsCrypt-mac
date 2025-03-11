@@ -19,15 +19,14 @@ protocol BaseViewModelProtocol {
 
 
 class BaseViewModel: ObservableObject, BaseViewModelProtocol {
-    
+    static let shared = BaseViewModel()
     @Published var isDNSCExist: Bool = false
     private let service = BaseService.shared
     private let arch: CPUArchType = Helper.shared.getCPUArchitecture()
-//    @Published var currentStatus: String = "Curent Status: "
+    @Published var currentStatus: String = "Curent Status: "
     
     
     func checkDNSCryptExistance() {
-//        currentStatus.append(" \(service.$downloadStatus)")
         let assetFolderUrl = Bundle.main.resourceURL
         
         do {
@@ -42,8 +41,10 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
                     }
                 }
             }
+            self.currentStatus = .currentState + "DNSCrypt Exist!"
         } catch {
             print(error.localizedDescription)
+            currentStatus = .currentState + error.localizedDescription
         }
     }
     
@@ -56,6 +57,7 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
             try FileManager.default.createDirectory(at: appSupportSubDirectory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o755])
         } catch {
             print("Error Create Directory: \(error.localizedDescription)")
+            currentStatus = .currentState + error.localizedDescription
         }
         let destinationURL = appSupportSubDirectory.appendingPathComponent(url.lastPathComponent)
         
@@ -66,13 +68,16 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
             print("File copied successfully to: \(destinationURL.path)")
         } catch {
             print("Error Move Item: \(error.localizedDescription)")
+            currentStatus = .currentState + error.localizedDescription
         }
         Helper.shared.unzipFile(at: destinationURL) { result in
             switch result {
             case .success(let success):
                 print(success.relativePath)
+                self.currentStatus = .currentState + "Unzipped"
             case .failure(let failure):
                 print(failure.localizedDescription)
+                self.currentStatus = .currentState + failure.localizedDescription
             }
         }
     }

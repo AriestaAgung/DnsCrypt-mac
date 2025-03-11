@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var isOnStatus: Bool = false
     @State private  var isDisabledStatus: Bool = false
+    @ObservedObject private var viewModel = BaseViewModel.shared
     
     var body: some View {
         VStack {
@@ -17,10 +18,11 @@ struct ContentView: View {
                 .toggleStyle(.switch)
                 .disabled(isDisabledStatus == true)
                 .tint(.cyan)
+            Text(viewModel.currentStatus)
         }
         .padding()
         .onAppear {
-            BaseViewModel().checkDNSCryptExistance()
+            viewModel.checkDNSCryptExistance()
         }
     }
 }
