@@ -10,9 +10,22 @@
 		EB90AE5A2D7CF36B009F6941 /* DnsCrypt-mac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "DnsCrypt-mac.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		EBAEECC12D80884A0020BAAE /* Exceptions for "DnsCrypt-mac" folder in "DnsCrypt-mac" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = EB90AE592D7CF36B009F6941 /* DnsCrypt-mac */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		EB90AE5C2D7CF36B009F6941 /* DnsCrypt-mac */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				EBAEECC12D80884A0020BAAE /* Exceptions for "DnsCrypt-mac" folder in "DnsCrypt-mac" target */,
+			);
 			path = "DnsCrypt-mac";
 			sourceTree = "<group>";
 		};
@@ -248,20 +261,23 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "DnsCrypt-mac/DnsCrypt_mac.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "DnsCrypt-mac/App/DnsCrypt_mac.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"DnsCrypt-mac/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"DnsCrypt-mac/App/Preview Content\"";
 				DEVELOPMENT_TEAM = R2D4D7YLB2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "DnsCrypt-mac/Info.plist";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.dcd.DnsCrypt-mac";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -275,20 +291,23 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "DnsCrypt-mac/DnsCrypt_mac.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "DnsCrypt-mac/App/DnsCrypt_mac.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"DnsCrypt-mac/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"DnsCrypt-mac/App/Preview Content\"";
 				DEVELOPMENT_TEAM = R2D4D7YLB2;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "DnsCrypt-mac/Info.plist";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.dcd.DnsCrypt-mac";
 				PRODUCT_NAME = "$(TARGET_NAME)";
