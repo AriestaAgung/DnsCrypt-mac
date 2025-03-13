@@ -14,6 +14,8 @@ protocol BaseViewModelProtocol {
     func activateDNSCrypt()
     func deactivateDNSCrypt()
     func didToggleChange(isOn: Bool)
+    func checkAutoStart(isAutoStart: Bool)
+    func getIsAutoStart() -> Bool
     
 }
 
@@ -21,7 +23,8 @@ protocol BaseViewModelProtocol {
 class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     static let shared = BaseViewModel()
     @Published var isDNSCExist: Bool = false
-    @Published var currentStatus: String = "Curent Status: "
+//    @Published var currentStatus: String = "Curent Status: "
+    @Published var logsString: [String] = []
     private let service = BaseService.shared
     private let arch: CPUArchType = Helper.shared.getCPUArchitecture()
     private let helper = Helper.shared
@@ -43,10 +46,9 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
                     }
                 }
             }
-            self.currentStatus = .currentState + "DNSCrypt Exist!"
+            self.logsString.append("DNSCrypt Exist!")
         } catch {
-            print(error.localizedDescription)
-            currentStatus = .currentState + error.localizedDescription
+            logsString.append("Error DNSCrypt service is not exist: \(error.localizedDescription)")
         }
         setAppPath()
     }
@@ -59,8 +61,7 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
         do {
             try FileManager.default.createDirectory(at: appSupportSubDirectory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o755])
         } catch {
-            print("Error Create Directory: \(error.localizedDescription)")
-            currentStatus = .currentState + error.localizedDescription
+            logsString.append("Error Create Directory: \(error.localizedDescription)")
         }
         let destinationURL = appSupportSubDirectory.appendingPathComponent(url.lastPathComponent)
         
@@ -68,19 +69,17 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
             let destinationURL = appSupportSubDirectory.appendingPathComponent(url.lastPathComponent)
             
             try fileManager.copyItem(at: url, to: destinationURL)
-            print("File copied successfully to: \(destinationURL.path)")
+            
+            self.logsString.append("File copied successfully to: \(destinationURL.path)")
         } catch {
-            print("Error Move Item: \(error.localizedDescription)")
-            currentStatus = .currentState + error.localizedDescription
+            self.logsString.append("Error copying service: \(error.localizedDescription)")
         }
         helper.unzipFile(at: destinationURL) { result in
             switch result {
             case .success(let success):
-                print(success.relativePath)
-                self.currentStatus = .currentState + "Unzipped"
+                self.logsString.append("DNSCrypt unzipped to \(success.relativePath)")
             case .failure(let failure):
-                print(failure.localizedDescription)
-                self.currentStatus = .currentState + failure.localizedDescription
+                self.logsString.append("Error unzipping service: \(failure.localizedDescription)")
             }
         }
     }
@@ -96,11 +95,11 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     func activateDNSCrypt() {
         //TODO: CREATE CHECKBOX IF IT CHECKED, DNSCRYPT MUST BE AUTO ACTIVATED. STATE CAN BE STORED ON USERDEFAULTS.STANDARD
         installDNSCrypt()
-//        self.currentStatus = .currentState + "DNS Active..."
+        logsString.append("DNS Active...")
     }
     
     func deactivateDNSCrypt() {
-        self.currentStatus = .currentState + "DNS Inactive..."
+        logsString.append("DNS Inactive...")
     }
     
     func didToggleChange(isOn: Bool) {
@@ -109,6 +108,16 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
         } else {
             deactivateDNSCrypt()
         }
+    }
+    
+    func checkAutoStart(isAutoStart: Bool) {
+        
+    }
+    
+    func getIsAutoStart() -> Bool {
+        let isAutoStart = UserDefaults.standard.bool(forKey: "isAutoStart")
+        
+        return isAutoStart
     }
     
     private func setAppPath() {
@@ -125,7 +134,7 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
         }
         
         let fileURL = appSupportSubDirectory.appendingPathComponent("\(archPath)/dnscrypt-proxy")
-        print("File Path: \(fileURL.path)")
+        self.logsString.append("File Path: \(fileURL.path)")
         appPath = fileURL
         appDir = appSupportSubDirectory.appendingPathComponent("\(archPath)")
     }
@@ -137,15 +146,18 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
                     let safePath = "\"\(appPath.path)\"" // Quote the entire path
                     let command = "\(safePath) -service install"
                     let logs = try helper.execute(command, isSudo: true)
-                    self.currentStatus = .currentState + logs
+                    self.logsString.append(contentsOf: try helper.parseLog(logs))
+                    
                     UserDefaults.standard.set(true, forKey: "IsFirstInstall")
                 } else {
                     self.deactivateDNSCrypt()
                 }
             } catch {
                 self.deactivateDNSCrypt()
-                print("Error: \(error.localizedDescription)")
+                self.logsString.append("Error: \(error.localizedDescription)")
             }
+        } else {
+            self.logsString.append("Service already installed.")
         }
     }
 }
