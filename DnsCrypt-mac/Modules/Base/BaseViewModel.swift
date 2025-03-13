@@ -134,9 +134,9 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
         if UserDefaults.standard.string(forKey: "IsFirstInstall") == nil {
             do {
                 if let appPath {
-                    let safePath = "\"\(appPath.path)\""
-                    let logs = try helper.execute("\(appPath.path.replacingOccurrences(of: " ", with: "\\ ")) -service install", isSudo: true)
-                    print(logs)
+                    let safePath = "\"\(appPath.path)\"" // Quote the entire path
+                    let command = "\(safePath) -service install"
+                    let logs = try helper.execute(command, isSudo: true)
                     self.currentStatus = .currentState + logs
                     UserDefaults.standard.set(true, forKey: "IsFirstInstall")
                 } else {

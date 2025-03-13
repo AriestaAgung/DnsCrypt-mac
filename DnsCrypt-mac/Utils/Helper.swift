@@ -106,25 +106,23 @@ class Helper {
     }
     
     func execute(_ command: String, isSudo: Bool = false) throws -> String {
-        // Ensure command is properly escaped
         let escapedCommand = command.replacingOccurrences(of: "\"", with: "\\\"")
         
-        // AppleScript command to run with sudo
-//        let script = "do shell script \"\(escapedCommand)\" with administrator privileges"
-        let script = "do shell script \"\(command)\" with administrator privileges"
-        print(script)
-
         let process = Process()
         let pipe = Pipe()
         
-        
-        process.launchPath = "/bin/sh"
-        process.arguments = ["-c", script]
         if isSudo {
+            let script = "do shell script \"\(escapedCommand)\" with administrator privileges"
+            print(script)
             process.launchPath = "/usr/bin/osascript"
             process.arguments = ["-e", script]
+        } else {
+            process.launchPath = "/bin/sh"
+            process.arguments = ["-c", command]
         }
+
         process.standardOutput = pipe
+        process.standardError = pipe
         
         try process.run()
         process.waitUntilExit()
