@@ -21,10 +21,12 @@ protocol BaseViewModelProtocol {
 class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     static let shared = BaseViewModel()
     @Published var isDNSCExist: Bool = false
+    @Published var currentStatus: String = "Curent Status: "
     private let service = BaseService.shared
     private let arch: CPUArchType = Helper.shared.getCPUArchitecture()
-    @Published var currentStatus: String = "Curent Status: "
-    
+    private let helper = Helper.shared
+    private var appPath: URL?
+    private var appDir: URL?
     
     func checkDNSCryptExistance() {
         let assetFolderUrl = Bundle.main.resourceURL
@@ -46,6 +48,7 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
             print(error.localizedDescription)
             currentStatus = .currentState + error.localizedDescription
         }
+        setAppPath()
     }
     
     private func checkAppDirectoryExists(url: URL) {
@@ -70,7 +73,7 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
             print("Error Move Item: \(error.localizedDescription)")
             currentStatus = .currentState + error.localizedDescription
         }
-        Helper.shared.unzipFile(at: destinationURL) { result in
+        helper.unzipFile(at: destinationURL) { result in
             switch result {
             case .success(let success):
                 print(success.relativePath)
@@ -91,7 +94,8 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     }
     
     func activateDNSCrypt() {
-        self.currentStatus = .currentState + "DNS Active..."
+        installDNSCrypt()
+//        self.currentStatus = .currentState + "DNS Active..."
     }
     
     func deactivateDNSCrypt() {
@@ -106,4 +110,41 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
         }
     }
     
+    private func setAppPath() {
+        let applicationSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.example.default"
+        let appSupportSubDirectory = applicationSupport.appendingPathComponent(bundleID, isDirectory: true)
+
+        var archPath: String {
+            if arch == .ARM64 {
+                return "arm64"
+            } else {
+                return "x86_64"
+            }
+        }
+        
+        let fileURL = appSupportSubDirectory.appendingPathComponent("\(archPath)/dnscrypt-proxy")
+        print("File Path: \(fileURL.path)")
+        appPath = fileURL
+        appDir = appSupportSubDirectory.appendingPathComponent("\(archPath)")
+    }
+    
+    private func installDNSCrypt() {
+        if UserDefaults.standard.string(forKey: "IsFirstInstall") == nil {
+            do {
+                if let appPath {
+                    let safePath = "\"\(appPath.path)\""
+                    let logs = try helper.execute("\(appPath.path.replacingOccurrences(of: " ", with: "\\ ")) -service install", isSudo: true)
+                    print(logs)
+                    self.currentStatus = .currentState + logs
+                    UserDefaults.standard.set(true, forKey: "IsFirstInstall")
+                } else {
+                    self.deactivateDNSCrypt()
+                }
+            } catch {
+                self.deactivateDNSCrypt()
+                print("Error: \(error.localizedDescription)")
+            }
+        }
+    }
 }

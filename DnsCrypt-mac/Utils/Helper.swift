@@ -105,4 +105,49 @@ class Helper {
         }
     }
     
+    func execute(_ command: String, isSudo: Bool = false) throws -> String {
+        // Ensure command is properly escaped
+        let escapedCommand = command.replacingOccurrences(of: "\"", with: "\\\"")
+        
+        // AppleScript command to run with sudo
+//        let script = "do shell script \"\(escapedCommand)\" with administrator privileges"
+        let script = "do shell script \"\(command)\" with administrator privileges"
+        print(script)
+
+        let process = Process()
+        let pipe = Pipe()
+        
+        
+        process.launchPath = "/bin/sh"
+        process.arguments = ["-c", script]
+        if isSudo {
+            process.launchPath = "/usr/bin/osascript"
+            process.arguments = ["-e", script]
+        }
+        process.standardOutput = pipe
+        
+        try process.run()
+        process.waitUntilExit()
+        
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        guard let output = String(data: data, encoding: .utf8) else {
+            throw CommandError.invalidData
+        }
+        
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            throw CommandError.commandFailed(output)
+        }
+        
+        return output
+    }
+    
+    func parseLog(_ output: String) throws -> [String] {
+        let lines = output.components(separatedBy: .newlines)
+        guard lines.count > 1 else {
+            throw CommandError.emptyOutput
+        }
+        return lines
+    }
+    
 }
