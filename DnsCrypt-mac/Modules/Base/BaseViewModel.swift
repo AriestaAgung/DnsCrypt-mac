@@ -94,6 +94,7 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     }
     
     func activateDNSCrypt() {
+        //TODO: CREATE CHECKBOX IF IT CHECKED, DNSCRYPT MUST BE AUTO ACTIVATED. STATE CAN BE STORED ON USERDEFAULTS.STANDARD
         installDNSCrypt()
 //        self.currentStatus = .currentState + "DNS Active..."
     }
