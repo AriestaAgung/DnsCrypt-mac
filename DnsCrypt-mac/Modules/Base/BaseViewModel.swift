@@ -14,7 +14,7 @@ protocol BaseViewModelProtocol {
     func activateDNSCrypt()
     func deactivateDNSCrypt()
     func didToggleChange(isOn: Bool)
-    func checkAutoStart(isAutoStart: Bool)
+    func setAutoStart(isAutoStart: Bool)
     func getIsAutoStart() -> Bool
     
 }
@@ -23,7 +23,6 @@ protocol BaseViewModelProtocol {
 class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     static let shared = BaseViewModel()
     @Published var isDNSCExist: Bool = false
-//    @Published var currentStatus: String = "Curent Status: "
     @Published var logsString: [String] = []
     private let service = BaseService.shared
     private let arch: CPUArchType = Helper.shared.getCPUArchitecture()
@@ -51,6 +50,7 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
             logsString.append("Error DNSCrypt service is not exist: \(error.localizedDescription)")
         }
         setAppPath()
+        print(logsString.joined(separator: "\n"))
     }
     
     private func checkAppDirectoryExists(url: URL) {
@@ -110,13 +110,19 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
         }
     }
     
-    func checkAutoStart(isAutoStart: Bool) {
-        
+    func setAutoStart(isAutoStart: Bool) {
+        UserDefaults.standard.set(isAutoStart, forKey: "isAutoStart")
+        UserDefaults.standard.synchronize()
+        print(UserDefaults.standard.bool(forKey: "isAutoStart"))
     }
     
     func getIsAutoStart() -> Bool {
         let isAutoStart = UserDefaults.standard.bool(forKey: "isAutoStart")
-        
+        if isAutoStart {
+            DispatchQueue.main.async {
+                self.activateDNSCrypt()
+            }
+        }
         return isAutoStart
     }
     
@@ -160,4 +166,6 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
             self.logsString.append("Service already installed.")
         }
     }
+    
+    // TODO: Case for reinstall & uninstall dnscrypt service
 }
