@@ -29,6 +29,7 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     private let helper = Helper.shared
     private var appPath: URL?
     private var appDir: URL?
+    private var existingDNS: [String] = []
     
     func checkDNSCryptExistance() {
         let assetFolderUrl = Bundle.main.resourceURL
@@ -93,9 +94,24 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     }
     
     func activateDNSCrypt() {
-        //TODO: CREATE CHECKBOX IF IT CHECKED, DNSCRYPT MUST BE AUTO ACTIVATED. STATE CAN BE STORED ON USERDEFAULTS.STANDARD
         installDNSCrypt()
-        logsString.append("DNS Active...")
+        if let appPath {
+            let safePath = "\"\(appPath.path)\""
+            let command = "networksetup -setdnsservers Wi-Fi 127.0.0.1;dscacheutil -flushcache; sudo killall -HUP mDNSResponder;\(safePath) -service stop;\(safePath)"
+            do {
+                let logs = try helper.execute(command, isSudo: true)
+                self.logsString.append(logs)
+            } catch {
+                self.logsString.append("Error: \(error.localizedDescription)")
+                self.deactivateDNSCrypt()
+            }
+            logsString.append("DNS Active...")
+        } else {
+            logsString.append("Failed to run the app...")
+            logsString.append("Trying to reinstall the app...")
+            UserDefaults.standard.removeObject(forKey: "IsFirstInstall")
+            installDNSCrypt()
+        }
     }
     
     func deactivateDNSCrypt() {
@@ -112,8 +128,6 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     
     func setAutoStart(isAutoStart: Bool) {
         UserDefaults.standard.set(isAutoStart, forKey: "isAutoStart")
-        UserDefaults.standard.synchronize()
-        print(UserDefaults.standard.bool(forKey: "isAutoStart"))
     }
     
     func getIsAutoStart() -> Bool {
@@ -125,7 +139,25 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
         }
         return isAutoStart
     }
-    
+    func getExistingDNS() {
+        // run "networksetup -getdnsservers Wi-Fi"
+        // if return There aren't any DNS Servers set on Wi-Fi.
+        // run "networksetup -getdnsservers Ethernet"
+        // set existingDNS and separate the results by newLines
+        
+        do {
+            var command = "networksetup -getdnsservers Wi-Fi"
+            var logs = try helper.execute(command)
+            if logs == "There aren't any DNS Servers set on Wi-Fi." {
+                command = "networksetup -getdnsservers Ethernet"
+                logs = try helper.execute(command)
+            }
+            existingDNS = logs.components(separatedBy: .newlines)
+            logsString.append("Success get existing local DNS - \(existingDNS.joined(separator: ", "))")
+        } catch {
+            logsString.append("Failed to get existing local DNS...")
+        }
+    }
     private func setAppPath() {
         let applicationSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let bundleID = Bundle.main.bundleIdentifier ?? "com.example.default"
