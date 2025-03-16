@@ -128,16 +128,19 @@ class Helper {
         process.waitUntilExit()
         
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        print("[Commands]: \(command)")
+        print(String(data: data, encoding: .utf8) ?? "EMPTY OUTPUT")
         guard let output = String(data: data, encoding: .utf8) else {
             throw CommandError.invalidData
         }
         
         process.waitUntilExit()
+        
         guard process.terminationStatus == 0 else {
             throw CommandError.commandFailed(output)
         }
         
-        return output
+        return String(data: data, encoding: .utf8) ?? "No output"+output
     }
     
     func parseLog(_ output: String) throws -> [String] {
@@ -147,5 +150,4 @@ class Helper {
         }
         return lines
     }
-    
 }

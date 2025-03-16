@@ -30,6 +30,7 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     private var appPath: URL?
     private var appDir: URL?
     private var existingDNS: [String] = []
+    private var dnscProcess: UUID?
     
     func checkDNSCryptExistance() {
         let assetFolderUrl = Bundle.main.resourceURL
@@ -79,6 +80,12 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
             switch result {
             case .success(let success):
                 self.logsString.append("DNSCrypt unzipped to \(success.relativePath)")
+                do {
+                    let safePath = "\"\(self.appDir?.path ?? "")\""
+                    let log = try self.helper.execute("cp \(safePath)/example-dnscrypt-proxy.toml \(safePath)/dnscrypt-proxy.toml")
+                } catch {
+                    self.logsString.append("Failed to copy example-dnscrypt-proxy.toml")
+                }
             case .failure(let failure):
                 self.logsString.append("Error unzipping service: \(failure.localizedDescription)")
             }
@@ -97,14 +104,18 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
         installDNSCrypt()
         if let appPath {
             let safePath = "\"\(appPath.path)\""
+            getExistingDNS()
             let command = "networksetup -setdnsservers Wi-Fi 127.0.0.1;dscacheutil -flushcache; sudo killall -HUP mDNSResponder;\(safePath) -service stop;\(safePath)"
-            do {
-                let logs = try helper.execute(command, isSudo: true)
-                self.logsString.append(logs)
-            } catch {
-                self.logsString.append("Error: \(error.localizedDescription)")
-                self.deactivateDNSCrypt()
-            }
+            dnscProcess = CommandExecutor.shared.execute(command, isSudo: true) { result in
+                    switch result {
+                    case .success(let success):
+                        self.logsString.append(success)
+                    case .failure(let failure):
+                        self.logsString.append("Error: \(failure.localizedDescription)")
+                        self.deactivateDNSCrypt()
+                    }
+                }
+            
             logsString.append("DNS Active...")
         } else {
             logsString.append("Failed to run the app...")
@@ -115,6 +126,10 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     }
     
     func deactivateDNSCrypt() {
+        setExistingDNS()
+        if let dnscProcess {
+            CommandExecutor.shared.terminate(dnscProcess)
+        }
         logsString.append("DNS Inactive...")
     }
     
@@ -139,23 +154,45 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
         }
         return isAutoStart
     }
-    func getExistingDNS() {
-        // run "networksetup -getdnsservers Wi-Fi"
-        // if return There aren't any DNS Servers set on Wi-Fi.
-        // run "networksetup -getdnsservers Ethernet"
-        // set existingDNS and separate the results by newLines
-        
+    private func getExistingDNS() {
+        var command = "networksetup -getdnsservers Wi-Fi"
+        _ = CommandExecutor.shared.execute(command) { result in
+            switch result {
+            case .success(let success):
+                self.logsString.append(success)
+            case .failure(let failure):
+                self.logsString.append(failure.localizedDescription)
+            }
+        }
+        if logsString.contains("There aren't any DNS Servers set on Wi-Fi." ) {
+            command = "networksetup -getdnsservers Ethernet"
+            _ = CommandExecutor.shared.execute(command, isSudo: true) { result in
+                switch result {
+                case .success(let success):
+                    self.logsString.append(success)
+                    self.existingDNS = success.components(separatedBy: .newlines)
+                    self.logsString.append("Success get existing local DNS - \(self.existingDNS.joined(separator: ", "))")
+                case .failure(let failure):
+                    self.logsString.append("Failed to get existing local DNS." + failure.localizedDescription)
+                }
+            }
+        }
+    }
+    private func setExistingDNS() {
+        var dnsString = existingDNS.joined(separator: " ")
+        if existingDNS.isEmpty {
+            dnsString = "8.8.8.8 8.8.4.4"
+        }
         do {
-            var command = "networksetup -getdnsservers Wi-Fi"
+            var command = "networksetup -setdnsservers Wi-Fi \(dnsString)"
             var logs = try helper.execute(command)
             if logs == "There aren't any DNS Servers set on Wi-Fi." {
-                command = "networksetup -getdnsservers Ethernet"
+                command = "networksetup -setdnsservers Ethernet \(dnsString)"
                 logs = try helper.execute(command)
             }
-            existingDNS = logs.components(separatedBy: .newlines)
-            logsString.append("Success get existing local DNS - \(existingDNS.joined(separator: ", "))")
+            logsString.append("Success set existing local DNS - \(logs)")
         } catch {
-            logsString.append("Failed to get existing local DNS...")
+            logsString.append("Failed to set existing local DNS. set your DNS manually back to \(dnsString)")
         }
     }
     private func setAppPath() {
@@ -179,21 +216,22 @@ class BaseViewModel: ObservableObject, BaseViewModelProtocol {
     
     private func installDNSCrypt() {
         if UserDefaults.standard.string(forKey: "IsFirstInstall") == nil {
-            do {
                 if let appPath {
                     let safePath = "\"\(appPath.path)\"" // Quote the entire path
                     let command = "\(safePath) -service install"
-                    let logs = try helper.execute(command, isSudo: true)
-                    self.logsString.append(contentsOf: try helper.parseLog(logs))
-                    
+                    _ = CommandExecutor.shared.execute(command, isSudo: true) { result in
+                        switch result {
+                        case .success(let success):
+                            self.logsString.append(success)
+                        case .failure(let failure):
+                            self.deactivateDNSCrypt()
+                            self.logsString.append("Error: \(failure.localizedDescription)")
+                        }
+                    }
                     UserDefaults.standard.set(true, forKey: "IsFirstInstall")
                 } else {
                     self.deactivateDNSCrypt()
                 }
-            } catch {
-                self.deactivateDNSCrypt()
-                self.logsString.append("Error: \(error.localizedDescription)")
-            }
         } else {
             self.logsString.append("Service already installed.")
         }
